@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+
 
 function TypingTest() {
     const [inputText, setInputText] = useState("");
@@ -7,7 +7,6 @@ function TypingTest() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [startTime, setStartTime] = useState(0);
     const [endTime, setEndTime] = useState(0);
-
     const [wpm, setWpm] = useState(0);
     const [lastCorrectIndex, setLastCorrectIndex] = useState(-1);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -25,12 +24,11 @@ function TypingTest() {
     function handleTyping(event: React.FormEvent<HTMLInputElement>) {
         if (currentIndex === 0) {
             setStartTime(Date.now());
-
-
         }
         const currentWord = words[currentIndex].toLowerCase();
         setInputText(event.currentTarget.value.toLowerCase());
-        let lastCorrectIndex = 0;
+
+        let lastCorrectIndex = -1;
         for (let i = 0; i < inputText.length; i++) {
             if (inputText[i] === currentWord[i]) {
                 lastCorrectIndex = i;
@@ -39,9 +37,10 @@ function TypingTest() {
             }
         }
         setLastCorrectIndex(lastCorrectIndex);
+
         if (inputText.trim() === currentWord.trim()) {
             setCurrentIndex(currentIndex + 1);
-            (event.target as HTMLInputElement).value = '';
+            // (event.target as HTMLInputElement).value = '';
             setLastCorrectIndex(-1);
             if (currentIndex === words.length - 1) {
                 setEndTime(Date.now());
@@ -153,8 +152,6 @@ function TypingTest() {
                     </div>
                 </div>
             )}
-
-
         </div>
     );
 }
