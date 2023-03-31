@@ -40,7 +40,7 @@ function TypingTest() {
 
         if (inputText.trim() === currentWord.trim()) {
             setCurrentIndex(currentIndex + 1);
-            // (event.target as HTMLInputElement).value = '';
+            (event.target as HTMLInputElement).value = '';
             setLastCorrectIndex(-1);
             if (currentIndex === words.length - 1) {
                 setEndTime(Date.now());
@@ -108,8 +108,6 @@ function TypingTest() {
     }
 
     useEffect(() => {
-
-
         if (startTime !== 0 && endTime !== 0) {
             const totalTime = endTime - startTime;
             const minutes = totalTime / 60000;
@@ -117,7 +115,6 @@ function TypingTest() {
             setWpm(wpm);
             inputRef.current!.disabled = true;
         }
-
     }, [endTime, inputRef, words.length, startTime]);
 
     return (

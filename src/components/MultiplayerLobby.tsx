@@ -1,47 +1,75 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
+import { useRouter } from "next/router";
 
 interface CustomSocket extends Socket {
     join(roomName: string): void;
 }
+let sockets: any;
 
-var socket;
 const MultiplayerLobby = () => {
+    const router = useRouter()
     const [roomName, setRoomName] = useState("");
-    // const [socket, setSocket] = useState<CustomSocket | null>(null);
+    const [socket, setSocket] = useState<CustomSocket | null>(null);
+    const [connection, setConnection] = useState(false);
+
 
     const handleRoomNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRoomName(event.target.value);
     };
+
     useEffect(() => {
-        socketInitializer();
+        socketConnection();
     }, []);
 
-    const socketInitializer = async () => {
-        // We just call it because we don't need anything else out of it
-        await fetch("/api/socket");
+    async function socketConnection() {
+        try {
+            await fetch(`/api/socket`)
+            sockets = io();
+            sockets.on("connect", () => {
+                console.log(sockets);
+            });
+            setSocket(sockets)
+            setConnection(true);
+        }
+        catch (err) {
+            console.log(err);
+        }
+    }
 
-        socket = io();
+    const handleCreateRoom = async () => {
+        if (connection) {
+            try {
+                console.log(`Creating room ${roomName}`);
+                socket?.emit(`createRoom`, { room: roomName });
+                socket?.on('createdSuccess', (args1, callback) => {
+                    console.log(args1);
+                    callback({
+                        status: "ok"
+                    });
+                    router.push(`/typing-test/${roomName}`)
 
-
-    };
-    const handleCreateRoom = () => {
-
-        if (socket) {
-            console.log(`Creating room ${roomName}`);
-            socket.emit(`create-room`, { name: roomName })
+                });
+                socket?.on('alreadyexist', (args) => {
+                    console.log(args);
+                    //TOAST MSG TO USE DIFF CODE
+                });
+            }
+            catch (err) {
+                console.log(err);
+            }
         }
         else {
-            console.log(`Problem with connection`);
-
+            console.log(`Connection status - ${connection}`);
+            console.log(`Problem with connection - Try reloading`);
         }
     };
 
     const handleJoinRoom = (roomName: string) => {
 
-        if (socket) {
-            socket.on('room-join', (roomName) => {
+        if (connection) {
+            socket?.on('roomJoin', (roomName) => {
                 console.log(`Joining room ${roomName}`);
                 socket.join(roomName);
             })
@@ -73,7 +101,7 @@ const MultiplayerLobby = () => {
                 <div className="flex flex-row justify-center">
                     <button
                         className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-2 px-4 rounded mr-4"
-                        onClick={handleCreateRoom}
+                        onClick={() => handleCreateRoom()}
                     >
                         Create Room
                     </button>
