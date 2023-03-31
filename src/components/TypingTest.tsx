@@ -1,3 +1,5 @@
+import { useSocket } from '@/utils/socketContext';
+import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 
 
@@ -10,6 +12,10 @@ function TypingTest() {
     const [wpm, setWpm] = useState(0);
     const [lastCorrectIndex, setLastCorrectIndex] = useState(-1);
     const inputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
+    const path = router.pathname
+    let socket = useSocket();
+
 
     // fetch the passage from the API using useEffect
     useEffect(() => {
@@ -20,6 +26,22 @@ function TypingTest() {
         }
         fetchPassage();
     }, []);
+    async function opponentsProgress() {
+        if (socket?.connected && path) {
+            try {
+                await socket.on(`otherUsersProgress`, (data) => {
+                    console.log(data);
+                });
+            }
+            catch (error) {
+                console.log(error);
+            }
+        }
+    }
+    useEffect(() => {
+        opponentsProgress();
+    }
+        , []);
 
     function handleTyping(event: React.FormEvent<HTMLInputElement>) {
         if (currentIndex === 0) {
@@ -54,6 +76,10 @@ function TypingTest() {
             if (inputText.length <= lastCorrectIndex + 1) {
                 event.preventDefault();
             }
+        }
+        if (socket?.connected) {
+
+            socket?.emit(`currentuserProgress`, { lastCorrectIndex });
         }
 
     }

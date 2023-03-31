@@ -1,45 +1,20 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/router";
+import { useSocket } from "@/utils/socketContext";
 
-interface CustomSocket extends Socket {
-    join(roomName: string): void;
-}
-let sockets: any;
+
 
 const MultiplayerLobby = () => {
     const router = useRouter()
     const [roomName, setRoomName] = useState("");
-    const [socket, setSocket] = useState<CustomSocket | null>(null);
-    const [connection, setConnection] = useState(false);
-
+    const socket = useSocket();
 
     const handleRoomNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRoomName(event.target.value);
     };
-
-    useEffect(() => {
-        socketConnection();
-    }, []);
-
-    async function socketConnection() {
-        try {
-            await fetch(`/api/socket`)
-            sockets = io();
-            sockets.on("connect", () => {
-                console.log(sockets);
-            });
-            setSocket(sockets)
-            setConnection(true);
-        }
-        catch (err) {
-            console.log(err);
-        }
-    }
-
     const handleCreateRoom = async () => {
-        if (connection) {
+        if (socket?.connected && roomName) {
             try {
                 console.log(`Creating room ${roomName}`);
                 socket?.emit(`createRoom`, { room: roomName });
@@ -61,21 +36,30 @@ const MultiplayerLobby = () => {
             }
         }
         else {
-            console.log(`Connection status - ${connection}`);
-            console.log(`Problem with connection - Try reloading`);
+            console.log(`Connection status - ${socket?.connected}`);
+            console.log(`if Connection status is true, then please enter the room`);
         }
     };
 
     const handleJoinRoom = (roomName: string) => {
+        if (socket?.connected && roomName) {
+            socket?.emit('roomJoin', { room: roomName });
+            socket?.on('joinedSuccessfully', (args1, callback) => {
+                console.log(args1);
+                callback({
+                    status: "ok"
+                });
+                router.push(`/typing-test/${roomName}`)
 
-        if (connection) {
-            socket?.on('roomJoin', (roomName) => {
-                console.log(`Joining room ${roomName}`);
-                socket.join(roomName);
-            })
+            });
+            socket?.on('roomNotFound', (args) => {
+                console.log(args);
+                //TOAST MSG TO USE DIFF CODE
+            });
         }
+    }
 
-    };
+
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-black">
@@ -91,6 +75,7 @@ const MultiplayerLobby = () => {
                         Room name
                     </label>
                     <input
+                        required
                         id="roomNameInput"
                         type="text"
                         className="border-gray-300 border-2 px-4 py-2 rounded-lg w-full text-xl font-medium shadow-lg"
@@ -107,10 +92,7 @@ const MultiplayerLobby = () => {
                     </button>
                     <button
                         className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-2 px-4 rounded"
-                        onClick={() => {
-
-                            handleJoinRoom(roomName);
-                        }}
+                        onClick={() => handleJoinRoom(roomName)}
                     >
                         Join Room
                     </button>
