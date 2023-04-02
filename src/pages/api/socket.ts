@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Server as IO } from "socket.io";
 
-interface Room {
-    room: string
-}
+
 const handler = (req: NextApiRequest, res: NextApiResponse) => {
     let userProgress;
     if (res.socket.server.io) {
@@ -13,52 +11,54 @@ const handler = (req: NextApiRequest, res: NextApiResponse) => {
     const io = new IO(res?.socket?.server);
     res.socket.server.io = io;
     io.on('connection', (socket) => {
+
         console.log(`User connected: ${socket.id}`);
 
-        socket.on(`createRoom`, (args: Room) => {
-            const roomID = args.room;
+        socket.on(`createRoom`, (args) => {
             const { rooms } = io.sockets.adapter;
-            const room = rooms.get(args.room);
-            console.log(`Active Rooms : ${rooms}`);
-            const numClients = room ? room.size : 0;
-            console.log(`Number of clients in room ${room}: ${numClients}`);
-
+            let room = rooms.get(args.room);
             if (room === undefined) {
                 socket.join(args.room);
                 socket.emit("createdSuccess", { Room: args.room, Message: 'Room Succesfully Created' }, (response: Response) => {
                     console.log(response.status);
                 });
-
-                socket.on('currentuserProgress', (args) => {
-                    userProgress = args.lastCorrectIndex;
-                    console.log(userProgress);
-
-                    socket.to(args.room).emit('otherUsersProgress', { userProgress })
-                })
             }
             else {
                 socket.emit("alreadyexist", {
-                    Error: "This room already exist please use a diffrent room code",
+                    Error: socket.rooms,
                 })
             }
         });
-        socket.on('roomJoin', (args: Room) => {
+        socket.on('roomJoin', async (args) => {
             const { rooms } = io.sockets.adapter;
-            const room = rooms.get(args.room);
-            if (room === undefined) {
+            const room = rooms.has(args.room);
+            if (room === false) {
                 socket.emit('roomNotFound', {
                     Error: "This room doesnt exist, wrong room code"
                 })
             }
             else {
                 socket.join(args.room);
-                const numClients = room ? room.size : 0;
-                console.log(`Number of clients in room ${room}: ${numClients}`);
+                // const numClients = room ? room.size : 0;
+                // console.log(`Number of clients in room ${JSON.stringify(room)}: ${numClients}`);
                 socket.emit("joinedSuccessfully", { Room: args.room, Message: 'Room Succesfully Joined' }, (response: Response) => {
                     console.log(response.status);
                 })
             };
         });
+
+        socket.on('currentuserProgress', (args) => {
+            const { rooms } = io.sockets.adapter;
+            const room = rooms.has(args.roomId);
+            userProgress = args.lastCorrectIndex;
+            if (room) {
+                console.log(`User ${socket.id} sent progress update to room ${args.roomId}`);
+                socket.to(args.roomId).emit('otherUsersProgress', { userProgress });
+            }
+            else {
+                console.log('ERROOR in room - current user progress');
+            }
+        })
         res.end();
     })
 }

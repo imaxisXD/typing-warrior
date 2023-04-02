@@ -7,8 +7,11 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 const server = http.createServer(app.getRequestHandler());
 
-const io = new Server(server);
-
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:3000"
+    }
+});
 
 io.on('connection', (socket: Socket) => {
     console.log(`Socket ${socket.id} connected`);
